@@ -2,3 +2,4 @@
 This project involves the integration and modification of VMD and SYVA software to analyze the symmetrical elements and point groups of molecules, as well as to visualize them.
 1、根据Makefile把文件编译为symm.exe
 2、把symm.exe复制到VMD的根目录。
+3、把symm.tcl复制到VMD的根目录。
