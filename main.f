@@ -181,7 +181,7 @@ c
       write(*,'(3(3x,a5,f13.6))') 
      &      'cmx= ',pc(1),' cmy= ',pc(2),' cmz= ',pc(3)
 c write to a.tcl
-      write(1001,'(a,f8.4,f8.4,f8.4,a)') 
+      write(1001,'(a,f9.4,f9.4,f9.4,a)') 
      &" variable com {",pc(1),pc(2),pc(3)," }"
       write(*,'(3(3x,a5,f13.6))') 
       if(subset) then
