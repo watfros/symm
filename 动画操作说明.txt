@@ -1,0 +1,87 @@
+
+# 选中所有的原子
+set allatom [atomselect top all]
+# 获取分子质心,变化为负向量，转为矩阵，并设为m0
+set m0 [transoffset [vecinvert [measure center $allatom weight mass]]]
+# 施加平移操作
+$allatom move $m0
+
+
+
+# 每隔100毫秒，施加旋转操作，形成动画。这里的vec {0.5773 -0.4083  0.7071}为输出的旋转轴，rdeg 18为旋转角度的1/10。
+set vec {0.5773 -0.4083 0.7071}
+set rdeg 18
+after 100 
+$allatom move [ trans axis $vec $rdeg deg  ]
+after 100 
+$allatom move [ trans axis $vec $rdeg deg  ]
+after 100 
+$allatom move [ trans axis $vec $rdeg deg  ]
+after 100 
+$allatom move [ trans axis $vec $rdeg deg  ]
+after 100 
+$allatom move [ trans axis $vec $rdeg deg  ]
+after 100 
+$allatom move [ trans axis $vec $rdeg deg  ]
+after 100 
+$allatom move [ trans axis $vec $rdeg deg  ]
+after 100 
+$allatom move [ trans axis $vec $rdeg deg  ]
+after 100 
+$allatom move [ trans axis $vec $rdeg deg  ]
+after 100 
+$allatom move [ trans axis $vec $rdeg deg  ]
+
+
+
+
+# 每隔100毫秒，对每个原子施加移动操作，形成动画。
+set vec {0.0000  0.8660  0.5000}
+set natom 5
+for {set i 1} {$i <= $natom} {incr i} {
+array set atom_ ""
+array set vscale_ ""
+array set vatom_ ""
+set atom_($i) [atomselect top "serial $i"]
+set vatom_($i) [lindex [$atom_($i) get {x y z}] 0]
+set vscale_($i) [vecdot $vec $vatom_($i)]
+set vscale_($i) [expr {0.2*$vscale_($i)}]
+$atom_($i) moveby [vecscale $vscale_($i) [vecinvert $vec]]
+}
+after 100 
+for {set i 1} {$i <= $natom} {incr i} {
+$atom_($i) moveby [vecscale $vscale_($i) [vecinvert $vec]]
+}
+after 100 
+for {set i 1} {$i <= $natom} {incr i} {
+$atom_($i) moveby [vecscale $vscale_($i) [vecinvert $vec]]
+}
+after 100 
+for {set i 1} {$i <= $natom} {incr i} {
+$atom_($i) moveby [vecscale $vscale_($i) [vecinvert $vec]]
+}
+after 100 
+for {set i 1} {$i <= $natom} {incr i} {
+$atom_($i) moveby [vecscale $vscale_($i) [vecinvert $vec]]
+}
+after 100 
+for {set i 1} {$i <= $natom} {incr i} {
+$atom_($i) moveby [vecscale $vscale_($i) [vecinvert $vec]]
+}
+after 100 
+for {set i 1} {$i <= $natom} {incr i} {
+$atom_($i) moveby [vecscale $vscale_($i) [vecinvert $vec]]
+}
+after 100 
+for {set i 1} {$i <= $natom} {incr i} {
+$atom_($i) moveby [vecscale $vscale_($i) [vecinvert $vec]]
+}
+after 100 
+for {set i 1} {$i <= $natom} {incr i} {
+$atom_($i) moveby [vecscale $vscale_($i) [vecinvert $vec]]
+}
+after 100 
+for {set i 1} {$i <= $natom} {incr i} {
+$atom_($i) moveby [vecscale $vscale_($i) [vecinvert $vec]]
+}
+
