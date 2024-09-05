@@ -494,9 +494,9 @@ proc ::Symmetry::make_selection {} {
 
 proc ::Symmetry::select_axis {item} {
    variable canvaso
+   variable axes
    if {![llength $item] || $canvaso<0} { return }
-
-   #puts "Selected item $item"
+   
    variable axisgid
    variable lastselectaxis
    graphics $canvaso replace $lastselectaxis
@@ -506,13 +506,32 @@ proc ::Symmetry::select_axis {item} {
 
    graphics $canvaso replace $lastselectaxis
    graphics $canvaso color orange2
+   
+   set vmdout [open "b.tcl" w]
+   #puts "Selected item [lindex $axes $item]"
+   set axis_i [lindex $axes $item]
+   #puts "Selected axis [lindex $axis_i 0]"
+   set output [lindex $axis_i 0]
+   puts $vmdout "set vec {$output}"
+   set output [lindex $axis_i 1]
+   set output [expr {36.00 / $output }]
+   puts $vmdout "set rdeg $output"
+   puts $vmdout "set allatom \[atomselect top all\]"
+   puts $vmdout "for {set i 1} {\$i <= 10} {incr i} {"
+   puts $vmdout "display update"
+   puts $vmdout "\$allatom move \[trans axis \$vec \$rdeg deg\]"
+   puts $vmdout "after 100"
+   puts $vmdout "}"
+   close $vmdout
+
+   source b.tcl
 }
 
 proc ::Symmetry::select_rraxis {item} {
    variable canvaso
    if {![llength $item] || $canvaso<0} { return }
 
-   #puts "Selected item $item"
+   puts "Selected item $item"
    variable rraxisgid
    variable lastselectrraxis
    graphics $canvaso replace $lastselectrraxis
@@ -529,7 +548,7 @@ proc ::Symmetry::select_plane {item} {
    variable canvast
    if {![llength $item] || $canvaso<0 || $canvast<0} { return }
 
-   #puts "Selected item $item"
+   puts "Selected item $item"
    variable planegid
    variable lastselectplaneo
    variable lastselectplanet
@@ -731,16 +750,19 @@ proc ::Symmetry::guess {sel {tol 0.2}} {
 #      array set symm [measure symmetry $sel -tol $tol -nobonds]
 #   }
 
+   set allatom [atomselect top all]
+   set m0 [transoffset [vecinvert [measure center $allatom weight mass]]]
+   $allatom move $m0
 
-
-   set vmdout [open "vmdout.txt" w]
+   set vmdout [open "vmdout.xyz" w]
    set output [$sel get "type x y z"]
    set output [string map {"{" "" "}" "\n"} $output]
    puts $vmdout [$sel num]
+   puts $vmdout " "
    puts $vmdout $output
    close $vmdout
    
-   exec symm.exe vmdout.txt tol=$tol
+   exec symm.exe vmdout.xyz tol=$tol
    
    #  "生成调用操作"
    set fp [open "a.tcl" r]
@@ -797,7 +819,7 @@ proc ::Symmetry::guess {sel {tol 0.2}} {
    #toggle_inertia
 
    draw_symmetry_elements
-
+   mol new vmdout.xyz
    mol top $origmol
 }
 

@@ -1,3 +1,11 @@
+下面的操作中，旋转操作，可以不用了，在symm tool中直接点击相应的对称操作就可以。
+
+
+最终模板，实现在VMD中选中对称元素，就可以执行相应的操作。
+1、VMD不能自动更新的问题，已经解决，命令为display update
+2、怎么输出相应的tcl文件，包括角度，vec，natom
+3、最后source 生成的tcl
+
 
 # 选中所有的原子
 set allatom [atomselect top all]

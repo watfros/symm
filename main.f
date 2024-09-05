@@ -149,6 +149,7 @@ c
          write(*,'(a)') 'ERROR: Too many atoms.'
          stop
       end if
+      read(in,*) 
       do i=1,natoms
          read(in,*) atom_symbol,(coord(j,i),j=1,3)
 		 !write(*,*) element_number(atom_symbol,symb)
