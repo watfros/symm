@@ -495,6 +495,7 @@ proc ::Symmetry::make_selection {} {
 proc ::Symmetry::select_axis {item} {
    variable canvaso
    variable axes
+   variable sel
    if {![llength $item] || $canvaso<0} { return }
    
    variable axisgid
@@ -507,7 +508,7 @@ proc ::Symmetry::select_axis {item} {
    graphics $canvaso replace $lastselectaxis
    graphics $canvaso color orange2
    
-   set vmdout [open "b.tcl" w]
+   set vmdout [open "axis.tcl" w]
    #puts "Selected item [lindex $axes $item]"
    set axis_i [lindex $axes $item]
    #puts "Selected axis [lindex $axis_i 0]"
@@ -517,6 +518,7 @@ proc ::Symmetry::select_axis {item} {
    set output [expr {36.00 / $output }]
    puts $vmdout "set rdeg $output"
    puts $vmdout "set allatom \[atomselect top all\]"
+   puts $vmdout "set natom [$sel num]"
    puts $vmdout "for {set i 1} {\$i <= 10} {incr i} {"
    puts $vmdout "display update"
    puts $vmdout "\$allatom move \[trans axis \$vec \$rdeg deg\]"
@@ -524,7 +526,7 @@ proc ::Symmetry::select_axis {item} {
    puts $vmdout "}"
    close $vmdout
 
-   source b.tcl
+   source axis.tcl
 }
 
 proc ::Symmetry::select_rraxis {item} {
@@ -534,6 +536,9 @@ proc ::Symmetry::select_rraxis {item} {
    puts "Selected item $item"
    variable rraxisgid
    variable lastselectrraxis
+   variable rraxes
+   variable sel
+   
    graphics $canvaso replace $lastselectrraxis
    graphics $canvaso color lime
 
@@ -541,6 +546,40 @@ proc ::Symmetry::select_rraxis {item} {
 
    graphics $canvaso replace $lastselectrraxis
    graphics $canvaso color cyan2
+   
+   #每隔0.1秒执行一个旋转动画，执行10次
+   #puts "Selected item [lindex $axes $item]"
+   set rraxis_i [lindex $rraxes $item]
+   #puts "Selected axis [lindex $axis_i 0]"
+   set output [lindex $rraxis_i 1]
+   set output [expr {36.00 / $output }]
+   set rdeg $output
+   set allatom [atomselect top all]
+   set natom [$sel num]
+   for {set i 1} {$i <= 10} {incr i} {
+   display update
+   $allatom move [trans axis [lindex $rraxis_i 0] $rdeg deg]
+   after 100
+   }
+   
+   #每隔0.1秒执行一个原子平移动画，执行10次
+   for {set i 1} {$i <= $natom} {incr i} {
+   array set atom_ ""
+   array set vscale_ ""
+   array set vatom_ ""
+   set atom_($i) [atomselect top "serial $i"]
+   set vatom_($i) [lindex [$atom_($i) get {x y z}] 0]
+   set vscale_($i) [vecdot [lindex $rraxis_i 0] $vatom_($i)]
+   set vscale_($i) [expr {0.2*$vscale_($i)}]
+   }
+   
+   for {set j 1} {$j <= 10} {incr j} {
+   for {set i 1} {$i <= $natom} {incr i} {
+   $atom_($i) moveby [vecscale $vscale_($i) [vecinvert [lindex $rraxis_i 0]]]
+   }
+   display update
+   after 100
+   }
 }
 
 proc ::Symmetry::select_plane {item} {
@@ -552,6 +591,9 @@ proc ::Symmetry::select_plane {item} {
    variable planegid
    variable lastselectplaneo
    variable lastselectplanet
+   variable planes
+   variable sel
+   
    graphics $canvaso replace $lastselectplaneo
    graphics $canvaso color pink
    graphics $canvast replace $lastselectplanet
@@ -564,6 +606,28 @@ proc ::Symmetry::select_plane {item} {
    graphics $canvaso color magenta
    graphics $canvast replace $lastselectplanet
    graphics $canvast color magenta
+   
+   #每隔0.1秒执行一个原子平移动画，执行10次
+   set natom [$sel num]
+   set planes_i [lindex $planes $item]
+   for {set i 1} {$i <= $natom} {incr i} {
+   array set atom_ ""
+   array set vscale_ ""
+   array set vatom_ ""
+   set atom_($i) [atomselect top "serial $i"]
+   set vatom_($i) [lindex [$atom_($i) get {x y z}] 0]
+   set vscale_($i) [vecdot [lindex $planes_i 0] $vatom_($i)]
+   set vscale_($i) [expr {0.2*$vscale_($i)}]
+   }
+   
+   for {set j 1} {$j <= 10} {incr j} {
+   for {set i 1} {$i <= $natom} {incr i} {
+   $atom_($i) moveby [vecscale $vscale_($i) [vecinvert [lindex $planes_i 0]]]
+   }
+   display update
+   after 100
+   }
+   
 }
 
 proc ::Symmetry::toggle_ideal {} {
