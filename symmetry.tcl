@@ -4,13 +4,13 @@
 #VMD is Copyright © 1995-2016 Theoretical and Computational Biophysics Group and the
 #Board of Trustees of the University of Illinois
 #Portions of this code are copyright © 1997-1998 Andrew Dalke.
-package provide symmetry 1.3
+package provide symmetrytool 1.3
 
 #puts "*** symmetrytool ***"
 #puts "*** developed by VMD ***"
 #puts "*** modified by Jinglin Mu ***"
 #puts "*** watfros@sdut.edu.cn ***"
-puts {type "symmetry" to display the symmetry elements}
+
 
 namespace eval ::Symmetry:: {
 
@@ -31,6 +31,7 @@ namespace eval ::Symmetry:: {
       variable showideal   0
       variable showorient  0
       variable showinertia 0
+      variable showcenter  1
       variable showrotaxes 1
       variable showrraxes  1
       variable showplanes  1
@@ -46,9 +47,12 @@ namespace eval ::Symmetry:: {
       variable rraxisgid {}
       variable planelist {}
       variable planegid {}
+      variable centerinfo {}
+      variable centerid {}
       variable inertialist {}
       variable inertiagido {}
       variable inertiagidi {}
+      variable inversion 0 
 
       variable repname    {}
       variable uniquerepo {}
@@ -305,8 +309,40 @@ proc ::Symmetry::create_gui {args} {
    pack $w.ele.planes.format  -anchor w
    pack $w.ele.planes.list    -expand 1 -fill both
 
+   labelframe $w.ele.center -bd 2 -relief ridge -text "Centre of symmetry" -padx 2m -pady 2m
 
-   pack $w.ele.axes $w.ele.rraxes $w.ele.planes -padx 1m -pady 1m -side left -expand 1 -fill both
+   #pack $w.ele.axes $w.ele.rraxes $w.ele.planes -padx 1m -pady 1m -side left -expand 1 -fill both
+   # 对称中心 labelframe 内的组件
+   checkbutton $w.ele.center.show -text "Show" \
+      -variable ::Symmetry::showcenter -command ::Symmetry::draw_symmetry_elements
+   pack $w.ele.center.show -anchor w
+
+   label $w.ele.center.format -font $fixedfont -text " \# inversion" \
+      -relief flat -bd 2 -justify left;
+
+   frame $w.ele.center.list
+   scrollbar $w.ele.center.list.scroll -command "$w.ele.center.list.list yview"
+   listbox $w.ele.center.list.list -yscroll "$w.ele.center.list.scroll set" -font $fixedfont \
+      -width 18 -height 12 -setgrid 1 -selectmode browse -selectbackground $selectcolor \
+      -listvariable ::Symmetry::centerinfo
+
+   pack $w.ele.center.list.list    -side left -fill both -expand 1
+   pack $w.ele.center.list.scroll  -side left -fill y    -expand 0
+
+   pack $w.ele.center.format  -anchor w
+   pack $w.ele.center.list    -expand 1 -fill both
+
+   # 使用 grid 进行 2x2 布局
+   grid $w.ele.axes -row 0 -column 0 -padx 1m -pady 1m -sticky "nsew"
+   grid $w.ele.rraxes -row 0 -column 1 -padx 1m -pady 1m -sticky "nsew"
+   grid $w.ele.planes -row 1 -column 0 -padx 1m -pady 1m -sticky "nsew"
+   grid $w.ele.center -row 1 -column 1 -padx 1m -pady 1m -sticky "nsew"
+
+   # 设置网格的权重，使组件能均匀扩展
+   grid rowconfigure $w.ele 0 -weight 1
+   grid rowconfigure $w.ele 1 -weight 1
+   grid columnconfigure $w.ele 0 -weight 1
+   grid columnconfigure $w.ele 1 -weight 1
 
    pack $w.sel -padx 1m -pady 1m -expand 1 -fill both
    pack $w.guess $w.rmsd $w.summary -padx 1m -pady 1m -anchor w
@@ -325,6 +361,9 @@ proc ::Symmetry::create_gui {args} {
       ::Symmetry::select_plane [.symmetry.ele.planes.list.list curselection]
    }
 
+   bind $w.ele.center.list.list <<ListboxSelect>> {
+      ::Symmetry::select_center [.symmetry.ele.center.list.list curselection]
+   }
    # Update panes
    update_mol_list
 
@@ -416,6 +455,8 @@ proc ::Symmetry::update_mol {args} {
    variable rraxislist {}
    variable planes {}
    variable planelist {}
+   variable centerinfo {}
+   variable centerid {}
    variable inertialist {}
    variable inertiagido {}
    variable inertiagidi {}
@@ -492,6 +533,48 @@ proc ::Symmetry::make_selection {} {
    }
 }
 
+
+# 选中对称中心的处理过程
+proc ::Symmetry::select_center {item} {
+   variable centerid
+   variable canvaso
+   if {![llength $item] || $canvaso<0} { return }
+   #puts "Selected item $item"
+
+   variable lastselectcenter
+   # 先将对称中心恢复默认颜色
+   graphics $canvaso replace $lastselectcenter
+   graphics $canvaso color purple ;# 假设默认颜色是紫色
+
+   set lastselectcenter [lindex $centerid $item 0]
+   # 将选中的对称中心颜色变为黄色以高亮显示
+   graphics $canvaso replace $lastselectcenter
+   graphics $canvaso color yellow
+
+   # 更新显示的详细信息，这里简单示例打印信息
+   puts "Selected center"
+   set allatom [atomselect top all]
+   set natom [$allatom num]
+   #每隔0.1秒执行一个原子平移动画，执行10次
+   for {set i 1} {$i <= $natom} {incr i} {
+   array set atom_ ""
+   array set vscale_ ""
+   array set vatom_ ""
+   set atom_($i) [atomselect top "serial $i"]
+   set vatom_($i) [lindex [$atom_($i) get {x y z}] 0]
+   #puts "vatom_($i)"
+   }
+   
+   for {set j 1} {$j <= 10} {incr j} {
+   for {set i 1} {$i <= $natom} {incr i} {
+   $atom_($i) moveby [vecscale 0.2 [vecinvert $vatom_($i)]]
+   }
+   display update
+   after 100
+   }
+
+}
+
 proc ::Symmetry::select_axis {item} {
    variable canvaso
    variable axes
@@ -508,25 +591,20 @@ proc ::Symmetry::select_axis {item} {
    graphics $canvaso replace $lastselectaxis
    graphics $canvaso color orange2
    
-   set vmdout [open "axis.tcl" w]
-   #puts "Selected item [lindex $axes $item]"
+   
+   #每隔0.1秒执行一个旋转动画，执行10次
    set axis_i [lindex $axes $item]
    #puts "Selected axis [lindex $axis_i 0]"
-   set output [lindex $axis_i 0]
-   puts $vmdout "set vec {$output}"
    set output [lindex $axis_i 1]
    set output [expr {36.00 / $output }]
-   puts $vmdout "set rdeg $output"
-   puts $vmdout "set allatom \[atomselect top all\]"
-   puts $vmdout "set natom [$sel num]"
-   puts $vmdout "for {set i 1} {\$i <= 10} {incr i} {"
-   puts $vmdout "display update"
-   puts $vmdout "\$allatom move \[trans axis \$vec \$rdeg deg\]"
-   puts $vmdout "after 100"
-   puts $vmdout "}"
-   close $vmdout
-
-   source axis.tcl
+   set rdeg $output
+   set allatom [atomselect top all]
+   set natom [$sel num]
+   for {set i 1} {$i <= 10} {incr i} {
+   display update
+   $allatom move [trans axis [lindex $axis_i 0] $rdeg deg]
+   after 100
+   }
 }
 
 proc ::Symmetry::select_rraxis {item} {
@@ -554,8 +632,13 @@ proc ::Symmetry::select_rraxis {item} {
    set output [lindex $rraxis_i 1]
    set output [expr {36.00 / $output }]
    set rdeg $output
+   #这一句实际上描述了初始载入分子的数目
+   #set natom [$sel num]
+   #如何想通过使用某个分子的对称元素，对另外一个分子变形，那么必须使用下面的语句进行处理
    set allatom [atomselect top all]
-   set natom [$sel num]
+   set natom [$allatom num]
+   #puts $natom
+   
    for {set i 1} {$i <= 10} {incr i} {
    display update
    $allatom move [trans axis [lindex $rraxis_i 0] $rdeg deg]
@@ -608,7 +691,13 @@ proc ::Symmetry::select_plane {item} {
    graphics $canvast color magenta
    
    #每隔0.1秒执行一个原子平移动画，执行10次
-   set natom [$sel num]
+   #这一句实际上描述了初始载入分子的原子数目
+   #set natom [$sel num]
+   #如何想通过使用某个分子的对称元素，对另外一个分子变形，那么必须使用下面的语句进行处理
+   set allatom [atomselect top all]
+   set natom [$allatom num]
+   #puts $natom
+   
    set planes_i [lindex $planes $item]
    for {set i 1} {$i <= $natom} {incr i} {
    array set atom_ ""
@@ -923,14 +1012,20 @@ proc ::Symmetry::draw_symmetry_elements {} {
 
 
    # Draw inversion center
+   variable showcenter
    variable inversion
-   if {$inversion} {
-      #puts "inversion $center"
-      variable canvaso
-      graphics $canvaso color orange
-      graphics $canvaso sphere $center radius 0.2
-      graphics $canvaso text $center "   inv"
+   variable centerinfo {}
+   variable centerid {}
+
+   if {$showcenter} {
+       if {$inversion} {
+           set ids [::Symmetry::draw_center $sel $center -label "  inv" -color purple]
+           set centerid $ids
+           lappend centerinfo "inv"
+           variable lastselectcenter [lindex $centerid 0]
+       }
    }
+
 
    variable showrotaxes
    variable axes
@@ -1095,6 +1190,21 @@ proc ::Symmetry::draw_plane {pivot normal args} {
 }
 
 
+proc ::Symmetry::draw_center {sel center args} {
+    set color  [::util::getargs $args "-color" purple]
+    set label  [::util::getargs $args "-label" {}]
+    set radius [::util::getargs $args "-radius" 0.2]
+
+    variable canvaso
+    lappend ids [graphics $canvaso color $color]
+
+    lappend ids [graphics $canvaso sphere $center radius $radius resolution 11]
+    if {[llength $label]} {
+        lappend ids [graphics $canvaso text $center $label]
+    }
+
+    return $ids
+}
 
 proc ::Symmetry::vmd_draw_priaxes { mol sel } {
    set COM [measure center $sel weight mass]

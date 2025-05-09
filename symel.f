@@ -812,7 +812,7 @@ c
 c D2, D2d, D2h
          if(nsg.eq.3) then
 c D2h
-            nm=0
+            nm=2
             do i=2,nsg+1 
                if((nsym(i,5).gt.nsym(nm,5))) nm=i
             end do
